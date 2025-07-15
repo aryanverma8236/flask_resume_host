@@ -1,41 +1,35 @@
+from flask import Flask, request, render_template_string, send_from_directory
 import os
-from flask import Flask, request, redirect, url_for, render_template, send_from_directory
 
 app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # ✅ Create folder if it doesn't exist
 
-# Allow only .html uploads
-ALLOWED_EXTENSIONS = {'html'}
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# Home: Upload page
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        if 'htmlfile' not in request.files:
-            return "No file part"
-
         file = request.files['htmlfile']
-
-        if file.filename == '':
-            return "No file selected"
-
-        if file and allowed_file(file.filename):
-            filename = "profile.html"  # Overwrite every time
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        if file:
+            file_path = os.path.join(UPLOAD_FOLDER, "profile.html")
             file.save(file_path)
-            return redirect(url_for('view_uploaded'))
+            return "<p>Uploaded! <a href='/view'>View Profile</a></p>"
+    return '''
+        <!DOCTYPE html>
+        <html>
+        <head><title>Upload Profile</title></head>
+        <body>
+        <h2>Upload Your Profile HTML</h2>
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="htmlfile" accept=".html" required>
+            <button type="submit">Upload & Host</button>
+        </form>
+        </body>
+        </html>
+    '''
 
-    return render_template('upload.html')
-
-# View hosted HTML
 @app.route('/view')
-def view_uploaded():
-    return send_from_directory(app.config['UPLOAD_FOLDER'], 'profile.html')
+def view_profile():
+    return send_from_directory(UPLOAD_FOLDER, "profile.html")
 
 if __name__ == '__main__':
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     app.run(debug=True)
